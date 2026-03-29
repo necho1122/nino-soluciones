@@ -52,8 +52,9 @@ const CertificatePage: React.FC = () => {
 					raffleId: data.raffleId,
 					raffleTitle: data.raffleTitle,
 					drawExecutedAt: data.drawExecutedAt,
+					drawOutcome: data.drawOutcome ?? 'no-winner',
 					drawWinnerNumber: Number(data.drawWinnerNumber ?? 0),
-					winnerName: data.winnerName,
+					winnerName: data.winnerName ?? null,
 					winnerPhone: data.winnerPhone ?? null,
 					verificationCode: data.verificationCode,
 					verificationUrl: data.verificationUrl,
@@ -105,6 +106,8 @@ const CertificatePage: React.FC = () => {
 		[certificate?.drawWinnerNumber],
 	);
 
+	const hasWinner = certificate?.drawOutcome === 'winner';
+
 	const displayError = hasCertificateId
 		? error
 		: 'Identificador de certificado no valido.';
@@ -151,7 +154,7 @@ const CertificatePage: React.FC = () => {
 									Certificado oficial
 								</p>
 								<h1 className='mt-3 text-3xl font-black leading-tight text-[#0f172a] sm:text-4xl'>
-									Validez de sorteo y ganador
+									Validez oficial del sorteo
 								</h1>
 								<p className='mt-4 text-sm leading-7 text-[#334155] sm:text-base'>
 									Se certifica que el sorteo de la rifa{' '}
@@ -163,18 +166,25 @@ const CertificatePage: React.FC = () => {
 								<div className='mt-6 grid gap-3 sm:grid-cols-2'>
 									<div className='rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4'>
 										<p className='text-xs uppercase tracking-[0.2em] text-[#64748b]'>
-											Ganador
+											Resultado
 										</p>
 										<p className='mt-1 text-xl font-black text-[#0f172a]'>
-											{certificate.winnerName}
+											{hasWinner ? 'Con ganador' : 'Sin ganador'}
 										</p>
 										<p className='mt-1 text-sm text-[#475569]'>
-											Telefono: {certificate.winnerPhone ?? 'No registrado'}
+											{hasWinner
+												? `Ganador: ${certificate.winnerName ?? 'Participante'}`
+												: 'El número sorteado no estaba vendido al momento del sorteo.'}
 										</p>
+										{hasWinner && (
+											<p className='mt-1 text-sm text-[#475569]'>
+												Telefono: {certificate.winnerPhone ?? 'No registrado'}
+											</p>
+										)}
 									</div>
 									<div className='rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4'>
 										<p className='text-xs uppercase tracking-[0.2em] text-[#64748b]'>
-											Numero ganador
+											Numero sorteado
 										</p>
 										<p className='mt-1 text-xl font-black text-[#0f172a]'>
 											#{winnerNumber}

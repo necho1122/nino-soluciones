@@ -41,6 +41,13 @@ const formatCountdown = (target: string, now: number) => {
 		.join(':');
 };
 
+const getDrawDateFallbackTarget = (drawDate?: string | null) => {
+	if (!drawDate) return null;
+	const normalized = drawDate.trim();
+	if (!normalized) return null;
+	return `${normalized}T23:59:59`;
+};
+
 const RaffleDetailPage: React.FC = () => {
 	const params = useParams();
 	const raffleId = (params?.raffleId as string) ?? '';
@@ -273,6 +280,16 @@ const RaffleDetailPage: React.FC = () => {
 		() => tickets.filter((ticket) => selectedNumbers.includes(ticket.number)),
 		[selectedNumbers, tickets],
 	);
+
+	const countdownTarget = useMemo(() => {
+		if (raffle?.drawScheduledAt) return raffle.drawScheduledAt;
+		return getDrawDateFallbackTarget(raffle?.drawDate);
+	}, [raffle?.drawDate, raffle?.drawScheduledAt]);
+
+	const showCountdown =
+		!!countdownTarget &&
+		raffle?.drawStatus !== 'completed' &&
+		raffle?.drawStatus !== 'drawing';
 
 	const soldCount = tickets.filter((ticket) => ticket.status === 'sold').length;
 	const availableCount = tickets.filter(
@@ -543,15 +560,16 @@ const RaffleDetailPage: React.FC = () => {
 								<h2 className='mt-2 text-xl font-black text-white'>
 									Estado actual
 								</h2>
-								{raffle.drawStatus === 'scheduled' &&
-									raffle.drawScheduledAt && (
+								{showCountdown && countdownTarget && (
 										<>
 											<p className='mt-4 text-sm text-slate-300'>
-												El sorteo comienza el{' '}
-												{new Date(raffle.drawScheduledAt).toLocaleString()}.
+												{raffle?.drawScheduledAt
+													? 'El sorteo comienza el '
+													: 'Conteo en base a la fecha general del sorteo: '}
+												{new Date(countdownTarget).toLocaleString()}.
 											</p>
 											<p className='mt-3 text-4xl font-black text-amber-300'>
-												{formatCountdown(raffle.drawScheduledAt, now)}
+												{formatCountdown(countdownTarget, now)}
 											</p>
 										</>
 									)}
@@ -571,15 +589,16 @@ const RaffleDetailPage: React.FC = () => {
 												? `Ganador: ${raffle.drawWinnerName ?? 'Participante'}`
 												: 'No hubo ganador porque el número sorteado no había sido comprado.'}
 										</p>
-										{raffle.drawOutcome === 'winner' && (
-												<Link
-													href={`/certificado/${raffleId}`}
-													className='mt-3 inline-flex rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white'
-												>
-													{certificateAvailable
-														? 'Ver certificado de validez'
-														: 'Consultar certificado'}
-												</Link>
+										{(raffle.drawOutcome === 'winner' ||
+											raffle.drawOutcome === 'no-winner') && (
+											<Link
+												href={`/certificado/${raffleId}`}
+												className='mt-3 inline-flex rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white'
+											>
+												{certificateAvailable
+													? 'Ver certificado de validez'
+													: 'Consultar certificado'}
+											</Link>
 										)}
 									</div>
 								)}

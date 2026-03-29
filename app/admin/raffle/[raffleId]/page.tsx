@@ -188,8 +188,9 @@ const AdminRafflePage: React.FC = () => {
 					raffleId: data.raffleId,
 					raffleTitle: data.raffleTitle,
 					drawExecutedAt: data.drawExecutedAt,
+					drawOutcome: data.drawOutcome ?? 'no-winner',
 					drawWinnerNumber: Number(data.drawWinnerNumber ?? 0),
-					winnerName: data.winnerName,
+					winnerName: data.winnerName ?? null,
 					winnerPhone: data.winnerPhone ?? null,
 					verificationCode: data.verificationCode,
 					verificationUrl: data.verificationUrl,
@@ -213,26 +214,24 @@ const AdminRafflePage: React.FC = () => {
 	const issueCertificate = useCallback(
 		async (payload?: {
 			drawExecutedAt: string;
+			drawOutcome: 'winner' | 'no-winner';
 			drawWinnerNumber: number;
-			winnerName: string;
+			winnerName: string | null;
 			winnerPhone: string | null;
 		}) => {
 			if (!raffle || !raffleId) return;
 			const winnerNumber = payload?.drawWinnerNumber ?? raffle.drawWinnerNumber;
-			const winnerName = payload?.winnerName ?? raffle.drawWinnerName;
+			const drawOutcome = payload?.drawOutcome ?? raffle.drawOutcome;
+			const winnerName = payload?.winnerName ?? raffle.drawWinnerName ?? null;
 			const drawExecutedAt = payload?.drawExecutedAt ?? raffle.drawExecutedAt;
 			const winnerPhone =
 				payload?.winnerPhone ?? raffle.drawWinnerPhone ?? null;
 
 			if (
-				raffle.drawOutcome !== 'winner' &&
-				(payload == null || payload.winnerName.trim() === '')
+				typeof winnerNumber !== 'number' ||
+				!drawExecutedAt ||
+				(drawOutcome !== 'winner' && drawOutcome !== 'no-winner')
 			) {
-				setActionNotice('No hay un ganador válido para emitir certificado.');
-				setTimeout(() => setActionNotice(null), 2200);
-				return;
-			}
-			if (typeof winnerNumber !== 'number' || !winnerName || !drawExecutedAt) {
 				setActionNotice('Faltan datos del sorteo para emitir el certificado.');
 				setTimeout(() => setActionNotice(null), 2200);
 				return;
@@ -255,9 +254,10 @@ const AdminRafflePage: React.FC = () => {
 						raffleId,
 						raffleTitle: raffle.title,
 						drawExecutedAt,
+						drawOutcome,
 						drawWinnerNumber: winnerNumber,
-						winnerName,
-						winnerPhone,
+						winnerName: drawOutcome === 'winner' ? winnerName : null,
+						winnerPhone: drawOutcome === 'winner' ? winnerPhone : null,
 						verificationCode,
 						verificationUrl,
 						issuedAt: new Date().toISOString(),
@@ -404,14 +404,13 @@ const AdminRafflePage: React.FC = () => {
 				},
 				{ merge: true },
 			);
-			if (hasWinner) {
-				await issueCertificate({
-					drawExecutedAt,
-					drawWinnerNumber: winnerTicket.number,
-					winnerName: winnerTicket.userName ?? 'Participante',
-					winnerPhone: winnerTicket.userPhone ?? null,
-				});
-			}
+			await issueCertificate({
+				drawExecutedAt,
+				drawOutcome: hasWinner ? 'winner' : 'no-winner',
+				drawWinnerNumber: winnerTicket.number,
+				winnerName: hasWinner ? (winnerTicket.userName ?? 'Participante') : null,
+				winnerPhone: hasWinner ? (winnerTicket.userPhone ?? null) : null,
+			});
 			setActionNotice(
 				hasWinner
 					? 'Sorteo ejecutado con ganador.'
@@ -637,7 +636,8 @@ const AdminRafflePage: React.FC = () => {
 												? `Ganador: ${raffle.drawWinnerName ?? 'Participante'}`
 												: 'No hubo ganador porque el número sorteado no fue comprado.'}
 										</p>
-										{raffle.drawOutcome === 'winner' && (
+										{(raffle.drawOutcome === 'winner' ||
+											raffle.drawOutcome === 'no-winner') && (
 											<div className='mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3'>
 												<p className='text-xs uppercase tracking-[0.2em] text-emerald-300'>
 													Certificado de validez

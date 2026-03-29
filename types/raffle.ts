@@ -37,8 +37,9 @@ export interface RaffleCertificate {
 	raffleId: string;
 	raffleTitle: string;
 	drawExecutedAt: string;
+	drawOutcome: 'winner' | 'no-winner';
 	drawWinnerNumber: number;
-	winnerName: string;
+	winnerName: string | null;
 	winnerPhone: string | null;
 	verificationCode: string;
 	verificationUrl: string;

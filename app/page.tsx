@@ -137,13 +137,12 @@ const HomePage: React.FC = () => {
 									>
 										Participar
 									</Link>
-									{raffle.drawStatus === 'completed' &&
-										raffle.drawOutcome === 'winner' && (
+									{raffle.drawStatus === 'completed' && (
 											<Link
 												href={`/certificado/${raffle.id}`}
 												className='w-full rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2.5 text-center text-sm font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white'
 											>
-												Ver certificado
+												Ver certificado de validez
 											</Link>
 										)}
 								</div>
