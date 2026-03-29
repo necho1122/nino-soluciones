@@ -103,5 +103,15 @@ service cloud.firestore {
           && after.paymentRef     is string && after.paymentRef.size()     > 0
           && after.purchasedAt    is string && after.purchasedAt.size()    > 0;
     }
+
+    // ─── raffleCertificates ─────────────────────────────────────────────
+    match /raffleCertificates/{certificateId} {
+
+      // Verificación pública del certificado
+      allow read: if true;
+
+      // Solo admin puede emitir o modificar certificados
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

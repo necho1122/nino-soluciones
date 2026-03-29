@@ -65,6 +65,8 @@ const AdminPanel: React.FC = () => {
 						createdAt: data.createdAt ?? null,
 						isArchived: data.isArchived ?? false,
 						archivedAt: data.archivedAt ?? null,
+						drawStatus: data.drawStatus ?? 'notScheduled',
+						drawOutcome: data.drawOutcome ?? null,
 					};
 				}),
 			);
@@ -386,10 +388,17 @@ const AdminPanel: React.FC = () => {
 									>
 										Administrar
 									</Link>
+									<Link
+										href={`/certificado/${raffle.id}`}
+										target='_blank'
+										className='rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2.5 text-sm font-semibold text-center text-emerald-200 hover:border-emerald-300 hover:text-white'
+									>
+										Ver certificado
+									</Link>
 									<button
 										onClick={() => archiveRaffle(raffle.id)}
 										disabled={deletingId === raffle.id}
-										className='rounded-lg bg-red-500 px-3 py-2.5 text-sm font-semibold text-white'
+										className='rounded-lg bg-red-500 px-3 py-2.5 text-sm font-semibold text-white sm:col-span-2'
 									>
 										{deletingId === raffle.id ? 'Archivando...' : 'Culminar'}
 									</button>
@@ -441,10 +450,17 @@ const AdminPanel: React.FC = () => {
 											>
 												Ver historial
 											</Link>
+											<Link
+												href={`/certificado/${raffle.id}`}
+												target='_blank'
+												className='inline-flex justify-center rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white'
+											>
+												Ver certificado
+											</Link>
 											<button
 												onClick={() => reactivateRaffle(raffle.id)}
 												disabled={reactivatingId === raffle.id}
-												className='rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400'
+												className='rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 sm:col-span-2'
 											>
 												{reactivatingId === raffle.id
 													? 'Reactivando...'

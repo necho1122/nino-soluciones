@@ -31,3 +31,18 @@ export interface Ticket {
 	paymentRef?: string | null;
 	purchasedAt?: string | null;
 }
+
+export interface RaffleCertificate {
+	id: string;
+	raffleId: string;
+	raffleTitle: string;
+	drawExecutedAt: string;
+	drawWinnerNumber: number;
+	winnerName: string;
+	winnerPhone: string | null;
+	verificationCode: string;
+	verificationUrl: string;
+	issuedAt: string;
+	issuedByUid: string | null;
+	status: 'valid';
+}

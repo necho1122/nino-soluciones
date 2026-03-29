@@ -41,6 +41,7 @@ const HomePage: React.FC = () => {
 							isArchived: data.isArchived ?? false,
 							drawStatus: data.drawStatus ?? 'notScheduled',
 							drawExecutedAt: data.drawExecutedAt ?? null,
+							drawOutcome: data.drawOutcome ?? null,
 						};
 					})
 					.filter((raffle) => raffle.isArchived !== true),
@@ -86,9 +87,8 @@ const HomePage: React.FC = () => {
 				) : (
 					<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5'>
 						{raffles.map((raffle, index) => (
-							<Link
+							<div
 								key={raffle.id}
-								href={`/raffle/${raffle.id}`}
 								className='block rounded-2xl border border-slate-700 bg-slate-900/70 p-3 sm:p-4 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/30 active:scale-[0.99]'
 							>
 								{raffle.imageUrl ? (
@@ -130,10 +130,24 @@ const HomePage: React.FC = () => {
 										? `$${raffle.ticketPrice.toFixed(2)}`
 										: 'No definido'}
 								</p>
-								<div className='mt-3 w-full rounded-lg bg-amber-500 px-3 py-2.5 text-center font-bold text-slate-900'>
-									Participar
+								<div className='mt-3 grid grid-cols-1 gap-2'>
+									<Link
+										href={`/raffle/${raffle.id}`}
+										className='w-full rounded-lg bg-amber-500 px-3 py-2.5 text-center font-bold text-slate-900 hover:bg-amber-400'
+									>
+										Participar
+									</Link>
+									{raffle.drawStatus === 'completed' &&
+										raffle.drawOutcome === 'winner' && (
+											<Link
+												href={`/certificado/${raffle.id}`}
+												className='w-full rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2.5 text-center text-sm font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white'
+											>
+												Ver certificado
+											</Link>
+										)}
 								</div>
-							</Link>
+							</div>
 						))}
 					</div>
 				)}

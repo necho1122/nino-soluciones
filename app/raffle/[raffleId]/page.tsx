@@ -23,7 +23,7 @@ import {
 	writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Raffle, Ticket } from '@/types/raffle';
+import { Raffle, RaffleCertificate, Ticket } from '@/types/raffle';
 
 const TOTAL_TICKETS = 100;
 
@@ -60,6 +60,7 @@ const RaffleDetailPage: React.FC = () => {
 	const [acceptedTerms, setAcceptedTerms] = useState(false);
 	const [drawRunning, setDrawRunning] = useState(false);
 	const [now, setNow] = useState(Date.now());
+	const [certificateAvailable, setCertificateAvailable] = useState(false);
 	const seedingRef = useRef(false);
 
 	useEffect(() => {
@@ -78,6 +79,7 @@ const RaffleDetailPage: React.FC = () => {
 			where('raffleId', '==', raffleId),
 			orderBy('number'),
 		);
+		const certificateRef = doc(db, 'raffleCertificates', raffleId);
 
 		const unsubRaffle = onSnapshot(
 			raffleRef,
@@ -183,9 +185,25 @@ const RaffleDetailPage: React.FC = () => {
 			},
 		);
 
+		const unsubCertificate = onSnapshot(
+			certificateRef,
+			(snapshot) => {
+				if (!snapshot.exists()) {
+					setCertificateAvailable(false);
+					return;
+				}
+				const data = snapshot.data() as RaffleCertificate;
+				setCertificateAvailable(data.status === 'valid');
+			},
+			(err) => {
+				console.error('Error cargando certificado:', err);
+			},
+		);
+
 		return () => {
 			unsubRaffle();
 			unsubTickets();
+			unsubCertificate();
 		};
 	}, [raffleId]);
 
@@ -553,6 +571,16 @@ const RaffleDetailPage: React.FC = () => {
 												? `Ganador: ${raffle.drawWinnerName ?? 'Participante'}`
 												: 'No hubo ganador porque el número sorteado no había sido comprado.'}
 										</p>
+										{raffle.drawOutcome === 'winner' && (
+												<Link
+													href={`/certificado/${raffleId}`}
+													className='mt-3 inline-flex rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white'
+												>
+													{certificateAvailable
+														? 'Ver certificado de validez'
+														: 'Consultar certificado'}
+												</Link>
+										)}
 									</div>
 								)}
 								{raffle.drawStatus === 'notScheduled' && (

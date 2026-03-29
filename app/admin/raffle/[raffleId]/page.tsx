@@ -10,6 +10,7 @@ import {
 	orderBy,
 	where,
 	doc,
+	getDoc,
 	updateDoc,
 	setDoc,
 	onSnapshot,
@@ -17,7 +18,12 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
-import { Raffle, Ticket, TicketStatus } from '@/types/raffle';
+import {
+	Raffle,
+	RaffleCertificate,
+	Ticket,
+	TicketStatus,
+} from '@/types/raffle';
 
 const STATUS_LABELS: Record<TicketStatus, string> = {
 	available: 'Disponible',
@@ -52,6 +58,13 @@ const formatCountdown = (target: string) => {
 		.join(':');
 };
 
+const buildVerificationCode = (raffleId: string, winnerNumber: number) => {
+	const raffleToken = raffleId.slice(0, 6).toUpperCase();
+	const winnerToken = String(winnerNumber).padStart(2, '0');
+	const timeToken = Date.now().toString(36).toUpperCase();
+	return `NINO-${raffleToken}-${winnerToken}-${timeToken}`;
+};
+
 const AdminRafflePage: React.FC = () => {
 	const params = useParams();
 	const raffleId = (params?.raffleId as string) ?? '';
@@ -67,6 +80,10 @@ const AdminRafflePage: React.FC = () => {
 	const [scheduleInput, setScheduleInput] = useState('');
 	const [savingSchedule, setSavingSchedule] = useState(false);
 	const [runningDraw, setRunningDraw] = useState(false);
+	const [issuingCertificate, setIssuingCertificate] = useState(false);
+	const [certificate, setCertificate] = useState<RaffleCertificate | null>(
+		null,
+	);
 
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, (user) => {
@@ -87,6 +104,7 @@ const AdminRafflePage: React.FC = () => {
 			where('raffleId', '==', raffleId),
 			orderBy('number'),
 		);
+		const certificateRef = doc(db, 'raffleCertificates', raffleId);
 
 		const unsubRaffle = onSnapshot(
 			raffleRef,
@@ -157,11 +175,110 @@ const AdminRafflePage: React.FC = () => {
 			},
 		);
 
+		const unsubCertificate = onSnapshot(
+			certificateRef,
+			(snapshot) => {
+				if (!snapshot.exists()) {
+					setCertificate(null);
+					return;
+				}
+				const data = snapshot.data() as RaffleCertificate;
+				setCertificate({
+					id: snapshot.id,
+					raffleId: data.raffleId,
+					raffleTitle: data.raffleTitle,
+					drawExecutedAt: data.drawExecutedAt,
+					drawWinnerNumber: Number(data.drawWinnerNumber ?? 0),
+					winnerName: data.winnerName,
+					winnerPhone: data.winnerPhone ?? null,
+					verificationCode: data.verificationCode,
+					verificationUrl: data.verificationUrl,
+					issuedAt: data.issuedAt,
+					issuedByUid: data.issuedByUid ?? null,
+					status: 'valid',
+				});
+			},
+			(err) => {
+				console.error('Error cargando certificado:', err);
+			},
+		);
+
 		return () => {
 			unsubRaffle();
 			unsubTickets();
+			unsubCertificate();
 		};
 	}, [adminUser, raffleId]);
+
+	const issueCertificate = useCallback(
+		async (payload?: {
+			drawExecutedAt: string;
+			drawWinnerNumber: number;
+			winnerName: string;
+			winnerPhone: string | null;
+		}) => {
+			if (!raffle || !raffleId) return;
+			const winnerNumber = payload?.drawWinnerNumber ?? raffle.drawWinnerNumber;
+			const winnerName = payload?.winnerName ?? raffle.drawWinnerName;
+			const drawExecutedAt = payload?.drawExecutedAt ?? raffle.drawExecutedAt;
+			const winnerPhone =
+				payload?.winnerPhone ?? raffle.drawWinnerPhone ?? null;
+
+			if (
+				raffle.drawOutcome !== 'winner' &&
+				(payload == null || payload.winnerName.trim() === '')
+			) {
+				setActionNotice('No hay un ganador válido para emitir certificado.');
+				setTimeout(() => setActionNotice(null), 2200);
+				return;
+			}
+			if (typeof winnerNumber !== 'number' || !winnerName || !drawExecutedAt) {
+				setActionNotice('Faltan datos del sorteo para emitir el certificado.');
+				setTimeout(() => setActionNotice(null), 2200);
+				return;
+			}
+
+			setIssuingCertificate(true);
+			try {
+				const certRef = doc(db, 'raffleCertificates', raffleId);
+				const currentCert = await getDoc(certRef);
+				const verificationCode = currentCert.exists()
+					? ((currentCert.data().verificationCode as string | undefined) ??
+						buildVerificationCode(raffleId, winnerNumber))
+					: buildVerificationCode(raffleId, winnerNumber);
+				const origin = window.location.origin;
+				const verificationUrl = `${origin}/certificado/${raffleId}`;
+
+				await setDoc(
+					certRef,
+					{
+						raffleId,
+						raffleTitle: raffle.title,
+						drawExecutedAt,
+						drawWinnerNumber: winnerNumber,
+						winnerName,
+						winnerPhone,
+						verificationCode,
+						verificationUrl,
+						issuedAt: new Date().toISOString(),
+						issuedByUid: adminUser?.uid ?? null,
+						status: 'valid',
+					},
+					{ merge: true },
+				);
+
+				setActionNotice('Certificado emitido correctamente.');
+				setTimeout(() => setActionNotice(null), 2400);
+			} catch (err) {
+				console.error('Error emitiendo certificado:', err);
+				setActionNotice('No se pudo emitir el certificado.');
+				setTimeout(() => setActionNotice(null), 2400);
+			} finally {
+				setIssuingCertificate(false);
+			}
+		},
+		[adminUser?.uid, raffle, raffleId],
+	);
 
 	const updateTicketStatus = async (
 		ticketId: string,
@@ -272,11 +389,12 @@ const AdminRafflePage: React.FC = () => {
 			await new Promise((resolve) => setTimeout(resolve, 1800));
 			const winnerTicket = tickets[Math.floor(Math.random() * tickets.length)];
 			const hasWinner = winnerTicket.status === 'sold';
+			const drawExecutedAt = new Date().toISOString();
 			await setDoc(
 				doc(db, 'raffles', raffleId),
 				{
 					drawStatus: 'completed',
-					drawExecutedAt: new Date().toISOString(),
+					drawExecutedAt,
 					drawOutcome: hasWinner ? 'winner' : 'no-winner',
 					drawWinnerNumber: winnerTicket.number,
 					drawWinnerName: hasWinner
@@ -286,6 +404,14 @@ const AdminRafflePage: React.FC = () => {
 				},
 				{ merge: true },
 			);
+			if (hasWinner) {
+				await issueCertificate({
+					drawExecutedAt,
+					drawWinnerNumber: winnerTicket.number,
+					winnerName: winnerTicket.userName ?? 'Participante',
+					winnerPhone: winnerTicket.userPhone ?? null,
+				});
+			}
 			setActionNotice(
 				hasWinner
 					? 'Sorteo ejecutado con ganador.'
@@ -299,7 +425,14 @@ const AdminRafflePage: React.FC = () => {
 		} finally {
 			setRunningDraw(false);
 		}
-	}, [raffle?.drawStatus, raffle?.isArchived, raffleId, runningDraw, tickets]);
+	}, [
+		issueCertificate,
+		raffle?.drawStatus,
+		raffle?.isArchived,
+		raffleId,
+		runningDraw,
+		tickets,
+	]);
 
 	useEffect(() => {
 		if (
@@ -504,6 +637,39 @@ const AdminRafflePage: React.FC = () => {
 												? `Ganador: ${raffle.drawWinnerName ?? 'Participante'}`
 												: 'No hubo ganador porque el número sorteado no fue comprado.'}
 										</p>
+										{raffle.drawOutcome === 'winner' && (
+											<div className='mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3'>
+												<p className='text-xs uppercase tracking-[0.2em] text-emerald-300'>
+													Certificado de validez
+												</p>
+												<p className='mt-1 text-sm text-slate-200'>
+													Estado:{' '}
+													<span className='font-bold text-white'>
+														{certificate ? 'Emitido' : 'Pendiente'}
+													</span>
+												</p>
+												<div className='mt-3 flex flex-wrap gap-2'>
+													<button
+														onClick={() => issueCertificate()}
+														disabled={issuingCertificate}
+														className='rounded-lg bg-emerald-400 px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-emerald-300 disabled:opacity-60'
+													>
+														{issuingCertificate
+															? 'Emitiendo...'
+															: certificate
+																? 'Reemitir certificado'
+																: 'Emitir certificado'}
+													</button>
+													<Link
+														href={`/certificado/${raffleId}`}
+														target='_blank'
+														className='rounded-lg border border-emerald-300/40 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:border-emerald-200 hover:text-white'
+													>
+														Ver certificado público
+													</Link>
+												</div>
+											</div>
+										)}
 									</div>
 								)}
 							</div>
