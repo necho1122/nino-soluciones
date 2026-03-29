@@ -1,0 +1,107 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── helpers ──────────────────────────────────────────────────────────
+
+    // Admin = cualquier usuario autenticado (Firebase Auth)
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // ─── raffles ──────────────────────────────────────────────────────────
+    match /raffles/{raffleId} {
+
+      // Catálogo público: cualquiera puede leer
+      allow read: if true;
+
+      // Solo el admin puede crear o eliminar rifas
+      allow create, delete: if isAdmin();
+
+      // Admin: puede actualizar cualquier campo
+      // Público: puede actualizar ÚNICAMENTE campos del sorteo automático
+      //   (el timer en la página pública ejecuta el sorteo cuando llega la hora)
+      allow update: if isAdmin() || isPublicDrawUpdate();
+    }
+
+    // El usuario público solo puede tocar campos del resultado del sorteo,
+    // y solo puede transicionar a estados válidos.
+    function isPublicDrawUpdate() {
+      let drawFields = [
+        'drawStatus',
+        'drawExecutedAt',
+        'drawOutcome',
+        'drawWinnerNumber',
+        'drawWinnerName',
+        'drawWinnerPhone'
+      ];
+      let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      return changedKeys.hasOnly(drawFields)
+          && request.resource.data.drawStatus in ['drawing', 'completed']
+          && (
+               request.resource.data.drawWinnerNumber == null
+               || request.resource.data.drawWinnerNumber is number
+             );
+    }
+
+    // ─── tickets ──────────────────────────────────────────────────────────
+    match /tickets/{ticketId} {
+
+      // Grilla de números: cualquiera puede leer
+      allow read: if true;
+
+      // Admin: acceso total a crear, actualizar y eliminar
+      allow create, update, delete: if isAdmin();
+
+      // Público - crear: solo cuando inicializa tickets vacíos (seed)
+      //   Todos los campos de comprador deben ser null, status = 'available'
+      allow create: if isPublicTicketSeed();
+
+      // Público - actualizar: solo para registrar una compra
+      //   El ticket debe estar 'available' y pasar a 'sold' con todos los datos del comprador
+      allow update: if isPublicTicketPurchase();
+
+      // Público nunca puede eliminar tickets
+      allow delete: if false;
+    }
+
+    // Ticket seed: el visitante puede crear tickets solo en estado inicial limpio
+    function isPublicTicketSeed() {
+      let d = request.resource.data;
+      return d.status == 'available'
+          && d.userId    == null
+          && d.userName  == null
+          && d.userNationalId == null
+          && d.userPhone == null
+          && d.paymentRef == null
+          && d.purchasedAt == null
+          && d.keys().hasAll([
+               'raffleId', 'number', 'status',
+               'userId', 'userName', 'userNationalId',
+               'userPhone', 'paymentRef', 'purchasedAt'
+             ]);
+    }
+
+    // Ticket purchase: el visitante puede comprar un ticket disponible
+    //   - Debe venir de 'available' → 'sold'
+    //   - Solo puede modificar los campos de compra (no raffleId, number, etc.)
+    //   - Todos los campos de comprador son obligatorios y no vacíos
+    function isPublicTicketPurchase() {
+      let before = resource.data;
+      let after  = request.resource.data;
+      let purchaseFields = [
+        'status', 'userName', 'userNationalId',
+        'userPhone', 'paymentRef', 'purchasedAt'
+      ];
+      return before.status == 'available'
+          && after.status  == 'sold'
+          && after.diff(before).affectedKeys().hasOnly(purchaseFields)
+          && after.userName       is string && after.userName.size()       > 0
+          && after.userNationalId is string && after.userNationalId.size() > 0
+          && after.userPhone      is string && after.userPhone.size()      > 0
+          && after.paymentRef     is string && after.paymentRef.size()     > 0
+          && after.purchasedAt    is string && after.purchasedAt.size()    > 0;
+    }
+  }
+}
