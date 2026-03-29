@@ -408,7 +408,9 @@ const AdminRafflePage: React.FC = () => {
 				drawExecutedAt,
 				drawOutcome: hasWinner ? 'winner' : 'no-winner',
 				drawWinnerNumber: winnerTicket.number,
-				winnerName: hasWinner ? (winnerTicket.userName ?? 'Participante') : null,
+				winnerName: hasWinner
+					? (winnerTicket.userName ?? 'Participante')
+					: null,
 				winnerPhone: hasWinner ? (winnerTicket.userPhone ?? null) : null,
 			});
 			setActionNotice(

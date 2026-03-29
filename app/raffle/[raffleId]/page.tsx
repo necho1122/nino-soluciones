@@ -561,18 +561,18 @@ const RaffleDetailPage: React.FC = () => {
 									Estado actual
 								</h2>
 								{showCountdown && countdownTarget && (
-										<>
-											<p className='mt-4 text-sm text-slate-300'>
-												{raffle?.drawScheduledAt
-													? 'El sorteo comienza el '
-													: 'Conteo en base a la fecha general del sorteo: '}
-												{new Date(countdownTarget).toLocaleString()}.
-											</p>
-											<p className='mt-3 text-4xl font-black text-amber-300'>
-												{formatCountdown(countdownTarget, now)}
-											</p>
-										</>
-									)}
+									<>
+										<p className='mt-4 text-sm text-slate-300'>
+											{raffle?.drawScheduledAt
+												? 'El sorteo comienza el '
+												: 'Conteo en base a la fecha general del sorteo: '}
+											{new Date(countdownTarget).toLocaleString()}.
+										</p>
+										<p className='mt-3 text-4xl font-black text-amber-300'>
+											{formatCountdown(countdownTarget, now)}
+										</p>
+									</>
+								)}
 								{(raffle.drawStatus === 'drawing' || drawRunning) && (
 									<p className='mt-4 text-lg font-bold text-sky-300'>
 										Sorteando en vivo...
