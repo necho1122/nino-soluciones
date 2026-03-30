@@ -387,7 +387,9 @@ const AdminRafflePage: React.FC = () => {
 
 			const normalizedPhone = normalizeVenezuelaPhone(ticket.userPhone);
 			if (!normalizedPhone) {
-				setActionNotice('Este ticket no tiene un teléfono válido para WhatsApp.');
+				setActionNotice(
+					'Este ticket no tiene un teléfono válido para WhatsApp.',
+				);
 				setTimeout(() => setActionNotice(null), 2200);
 				return;
 			}
@@ -410,12 +412,14 @@ const AdminRafflePage: React.FC = () => {
 
 					if (normalizedRef) {
 						return (
-							(candidate.paymentRef ?? '').trim().toLowerCase() === normalizedRef
+							(candidate.paymentRef ?? '').trim().toLowerCase() ===
+							normalizedRef
 						);
 					}
 
 					return (
-						(candidate.userName ?? '').trim().toLowerCase() === normalizedName &&
+						(candidate.userName ?? '').trim().toLowerCase() ===
+							normalizedName &&
 						(candidate.userNationalId ?? '').trim() === normalizedNationalId &&
 						candidate.purchasedAt === ticket.purchasedAt
 					);
@@ -952,7 +956,8 @@ const AdminRafflePage: React.FC = () => {
 										<option value='sold'>Vendido</option>
 										<option value='notAvailable'>No disponible</option>
 									</select>
-									{(ticket.status === 'reserved' || ticket.status === 'sold') && (
+									{(ticket.status === 'reserved' ||
+										ticket.status === 'sold') && (
 										<button
 											onClick={() => openWhatsAppConfirmation(ticket)}
 											disabled={!ticket.userPhone}
@@ -1044,7 +1049,8 @@ const AdminRafflePage: React.FC = () => {
 														<option value='sold'>Vendido</option>
 														<option value='notAvailable'>No disponible</option>
 													</select>
-													{(ticket.status === 'reserved' || ticket.status === 'sold') && (
+													{(ticket.status === 'reserved' ||
+														ticket.status === 'sold') && (
 														<button
 															onClick={() => openWhatsAppConfirmation(ticket)}
 															disabled={!ticket.userPhone}

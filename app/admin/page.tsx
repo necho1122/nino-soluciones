@@ -185,7 +185,7 @@ const AdminPanel: React.FC = () => {
 					raffleId: id,
 					number: ticketNumber,
 					status: 'available',
-						orderId: null,
+					orderId: null,
 					userId: null,
 					userName: null,
 					userNationalId: null,
