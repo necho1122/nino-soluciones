@@ -367,6 +367,29 @@ const RaffleDetailPage: React.FC = () => {
 			const batch = writeBatch(db);
 			const orderId = buildOrderId(raffleId);
 			const purchasedAt = new Date().toISOString();
+			const numbers = selectedTickets
+				.map((t) => t.number)
+				.sort((a, b) => a - b);
+			const totalAmount =
+				typeof ticketPrice === 'number' ? ticketPrice * numbers.length : null;
+
+			// Guardar orden en Firestore para historial del admin
+			batch.set(doc(db, 'orders', orderId), {
+				orderId,
+				raffleId,
+				raffleTitle: raffle?.title ?? '',
+				numbers,
+				quantity: numbers.length,
+				ticketPrice,
+				totalAmount,
+				status: 'reserved',
+				customerName: buyerName.trim(),
+				customerNationalId: buyerNationalId.trim(),
+				customerPhone: buyerPhone.trim(),
+				paymentRef: paymentReference.trim(),
+				createdAt: purchasedAt,
+			});
+
 			selectedTickets.forEach((ticket) => {
 				batch.set(
 					doc(db, 'tickets', ticket.id),
@@ -383,6 +406,27 @@ const RaffleDetailPage: React.FC = () => {
 				);
 			});
 			await batch.commit();
+
+			// Notificar al admin por Telegram (fire-and-forget, no bloquea al usuario)
+			fetch('/api/notify-telegram', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					orderId,
+					raffleTitle: raffle?.title ?? '',
+					customerName: buyerName.trim(),
+					customerNationalId: buyerNationalId.trim(),
+					customerPhone: buyerPhone.trim(),
+					numbers,
+					quantity: numbers.length,
+					ticketPrice,
+					totalAmount,
+					paymentRef: paymentReference.trim(),
+					createdAt: purchasedAt,
+				}),
+			}).catch((err) =>
+				console.error('[notify-telegram] No se pudo enviar notificación:', err),
+			);
 
 			setSuccessMessage(
 				'Tu pago fue registrado y tus números quedaron reservados hasta la verificación del pago.',

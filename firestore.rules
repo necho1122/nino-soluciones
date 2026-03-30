@@ -83,25 +83,40 @@ service cloud.firestore {
              ]);
     }
 
-    // Ticket purchase: el visitante puede comprar un ticket disponible
-    //   - Debe venir de 'available' → 'sold'
+    // Ticket purchase: el visitante reserva un ticket disponible
+    //   - Debe venir de 'available' → 'reserved'
     //   - Solo puede modificar los campos de compra (no raffleId, number, etc.)
     //   - Todos los campos de comprador son obligatorios y no vacíos
     function isPublicTicketPurchase() {
       let before = resource.data;
       let after  = request.resource.data;
       let purchaseFields = [
-        'status', 'userName', 'userNationalId',
+        'status', 'orderId', 'userName', 'userNationalId',
         'userPhone', 'paymentRef', 'purchasedAt'
       ];
       return before.status == 'available'
-          && after.status  == 'sold'
+          && after.status  == 'reserved'
           && after.diff(before).affectedKeys().hasOnly(purchaseFields)
+          && after.orderId        is string && after.orderId.size()        > 0
           && after.userName       is string && after.userName.size()       > 0
           && after.userNationalId is string && after.userNationalId.size() > 0
           && after.userPhone      is string && after.userPhone.size()      > 0
           && after.paymentRef     is string && after.paymentRef.size()     > 0
           && after.purchasedAt    is string && after.purchasedAt.size()    > 0;
+    }
+
+    // ─── orders ──────────────────────────────────────────────────────────
+    match /orders/{orderId} {
+
+      // Solo admin puede leer, actualizar o eliminar órdenes
+      allow read, update, delete: if isAdmin();
+
+      // Público: puede crear una orden nueva en estado reservado
+      allow create: if request.resource.data.status == 'reserved'
+          && request.resource.data.orderId is string
+          && request.resource.data.orderId.size() > 0
+          && request.resource.data.customerPhone is string
+          && request.resource.data.customerPhone.size() > 0;
     }
 
     // ─── raffleCertificates ─────────────────────────────────────────────
