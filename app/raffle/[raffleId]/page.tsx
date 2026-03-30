@@ -48,6 +48,13 @@ const getDrawDateFallbackTarget = (drawDate?: string | null) => {
 	return `${normalized}T23:59:59`;
 };
 
+const buildOrderId = (raffleId: string) => {
+	const raffleToken = raffleId.slice(0, 8).toUpperCase();
+	const timeToken = Date.now().toString(36).toUpperCase();
+	const randomToken = Math.random().toString(36).slice(2, 7).toUpperCase();
+	return `ORD-${raffleToken}-${timeToken}-${randomToken}`;
+};
+
 const RaffleDetailPage: React.FC = () => {
 	const params = useParams();
 	const raffleId = (params?.raffleId as string) ?? '';
@@ -146,6 +153,7 @@ const RaffleDetailPage: React.FC = () => {
 											raffleId,
 											number: ticketNumber,
 											status: 'available',
+											orderId: null,
 											userId: null,
 											userName: null,
 											userNationalId: null,
@@ -174,6 +182,7 @@ const RaffleDetailPage: React.FC = () => {
 							raffleId: data.raffleId,
 							number: Number(data.number ?? 0),
 							status: data.status ?? 'available',
+							orderId: data.orderId ?? null,
 							userId: data.userId ?? null,
 							userName: data.userName ?? null,
 							userNationalId: data.userNationalId ?? null,
@@ -356,23 +365,28 @@ const RaffleDetailPage: React.FC = () => {
 
 		try {
 			const batch = writeBatch(db);
+			const orderId = buildOrderId(raffleId);
+			const purchasedAt = new Date().toISOString();
 			selectedTickets.forEach((ticket) => {
 				batch.set(
 					doc(db, 'tickets', ticket.id),
 					{
-						status: 'sold',
+						status: 'reserved',
+						orderId,
 						userName: buyerName.trim(),
 						userNationalId: buyerNationalId.trim(),
 						userPhone: buyerPhone.trim(),
 						paymentRef: paymentReference.trim(),
-						purchasedAt: new Date().toISOString(),
+						purchasedAt,
 					},
 					{ merge: true },
 				);
 			});
 			await batch.commit();
 
-			setSuccessMessage('Tu compra fue registrada con éxito.');
+			setSuccessMessage(
+				'Tu pago fue registrado y tus números quedaron reservados hasta la verificación del pago.',
+			);
 			setSelectedNumbers([]);
 			setBuyerName('');
 			setBuyerNationalId('');

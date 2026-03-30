@@ -22,6 +22,35 @@ import { Raffle } from '@/types/raffle';
 
 const TOTAL_TICKETS = 100;
 
+const formatRaffleDrawStatus = (raffle: Raffle) => {
+	if (raffle.drawStatus === 'completed') {
+		const executedLabel = raffle.drawExecutedAt
+			? ` (${new Date(raffle.drawExecutedAt).toLocaleString()})`
+			: '';
+
+		return raffle.drawOutcome === 'no-winner'
+			? `Finalizado sin ganador${executedLabel}`
+			: `Finalizado${executedLabel}`;
+	}
+
+	if (raffle.drawStatus === 'drawing') {
+		return 'En proceso';
+	}
+
+	if (raffle.drawStatus === 'scheduled') {
+		const scheduledDate = raffle.drawScheduledAt || raffle.drawDate;
+		return scheduledDate
+			? `Programado para ${new Date(scheduledDate).toLocaleString()}`
+			: 'Programado';
+	}
+
+	if (raffle.drawDate) {
+		return `Pendiente (${new Date(raffle.drawDate).toLocaleDateString()})`;
+	}
+
+	return 'No definido';
+};
+
 const AdminPanel: React.FC = () => {
 	const [raffles, setRaffles] = useState<Raffle[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
@@ -65,6 +94,8 @@ const AdminPanel: React.FC = () => {
 						createdAt: data.createdAt ?? null,
 						isArchived: data.isArchived ?? false,
 						archivedAt: data.archivedAt ?? null,
+						drawScheduledAt: data.drawScheduledAt ?? null,
+						drawExecutedAt: data.drawExecutedAt ?? null,
 						drawStatus: data.drawStatus ?? 'notScheduled',
 						drawOutcome: data.drawOutcome ?? null,
 					};
@@ -154,6 +185,7 @@ const AdminPanel: React.FC = () => {
 					raffleId: id,
 					number: ticketNumber,
 					status: 'available',
+						orderId: null,
 					userId: null,
 					userName: null,
 					userNationalId: null,
@@ -372,7 +404,7 @@ const AdminPanel: React.FC = () => {
 										{raffle.description}
 									</p>
 									<p className='text-xs text-slate-400 mt-1'>
-										Sorteo: {raffle.drawDate}
+										Sorteo: {formatRaffleDrawStatus(raffle)}
 									</p>
 									<p className='text-xs text-slate-400 mt-1'>
 										Precio por número:{' '}

@@ -65,6 +65,74 @@ const buildVerificationCode = (raffleId: string, winnerNumber: number) => {
 	return `NINO-${raffleToken}-${winnerToken}-${timeToken}`;
 };
 
+const formatTicketNumber = (number: number) => String(number).padStart(2, '0');
+
+const normalizeVenezuelaPhone = (phone?: string | null) => {
+	if (!phone) return null;
+	const digits = phone.replace(/\D/g, '');
+	if (!digits) return null;
+
+	if (digits.startsWith('58')) return digits;
+	if (digits.startsWith('0')) return `58${digits.slice(1)}`;
+	return `58${digits}`;
+};
+
+const buildPaymentVerificationCode = (
+	raffleId: string,
+	orderId: string,
+	paymentRef: string,
+	phone: string,
+	numbers: number[],
+) => {
+	const seed = `${raffleId}|${orderId}|${paymentRef}|${phone}|${numbers.join('-')}`;
+	let hash = 0;
+	for (let index = 0; index < seed.length; index += 1) {
+		hash = (hash * 31 + seed.charCodeAt(index)) % 2147483647;
+	}
+	return `NS-${Math.abs(hash).toString(36).toUpperCase().padStart(7, '0')}`;
+};
+
+const buildWhatsAppConfirmationMessage = (params: {
+	customerName: string;
+	raffleTitle: string;
+	numbers: number[];
+	ticketPrice: number | null;
+	totalAmount: number | null;
+	orderId: string;
+	paymentRef: string;
+	verificationCode: string;
+}) => {
+	const numbersLabel = params.numbers
+		.map((ticketNumber) => `#${formatTicketNumber(ticketNumber)}`)
+		.join(', ');
+	const quantity = params.numbers.length;
+	const ticketPriceLabel =
+		typeof params.ticketPrice === 'number'
+			? `$${params.ticketPrice.toFixed(2)}`
+			: 'No definido';
+	const totalLabel =
+		typeof params.totalAmount === 'number'
+			? `$${params.totalAmount.toFixed(2)}`
+			: 'No definido';
+
+	return [
+		`Hola ${params.customerName},`,
+		'',
+		`Tu pago fue verificado exitosamente para la rifa "${params.raffleTitle}".`,
+		'',
+		'Resumen de tu compra:',
+		`- Cantidad de números: ${quantity}`,
+		`- Números asignados: ${numbersLabel}`,
+		`- Precio por número: ${ticketPriceLabel}`,
+		`- Monto transferido: ${totalLabel}`,
+		`- ID de orden: ${params.orderId}`,
+		`- Referencia de pago: ${params.paymentRef || 'No indicada'}`,
+		`- Código de verificación: ${params.verificationCode}`,
+		'',
+		'Gracias por participar en Nino Soluciones. ¡Mucho éxito!',
+	].join('\n');
+};
+
 const AdminRafflePage: React.FC = () => {
 	const params = useParams();
 	const raffleId = (params?.raffleId as string) ?? '';
@@ -75,6 +143,7 @@ const AdminRafflePage: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [filterStatus, setFilterStatus] = useState<TicketStatus | 'all'>('all');
+	const [orderIdFilter, setOrderIdFilter] = useState('');
 	const [updatingId, setUpdatingId] = useState<string | null>(null);
 	const [actionNotice, setActionNotice] = useState<string | null>(null);
 	const [scheduleInput, setScheduleInput] = useState('');
@@ -157,6 +226,7 @@ const AdminRafflePage: React.FC = () => {
 							raffleId: data.raffleId,
 							number: Number(data.number ?? 0),
 							status: (data.status as TicketStatus) ?? 'available',
+							orderId: data.orderId ?? null,
 							userId: data.userId ?? null,
 							userName: data.userName ?? null,
 							userNationalId: data.userNationalId ?? null,
@@ -311,6 +381,88 @@ const AdminRafflePage: React.FC = () => {
 		}
 	};
 
+	const openWhatsAppConfirmation = useCallback(
+		(ticket: Ticket) => {
+			if (!raffle) return;
+
+			const normalizedPhone = normalizeVenezuelaPhone(ticket.userPhone);
+			if (!normalizedPhone) {
+				setActionNotice('Este ticket no tiene un teléfono válido para WhatsApp.');
+				setTimeout(() => setActionNotice(null), 2200);
+				return;
+			}
+
+			const normalizedRef = (ticket.paymentRef ?? '').trim().toLowerCase();
+			const normalizedName = (ticket.userName ?? '').trim().toLowerCase();
+			const normalizedNationalId = (ticket.userNationalId ?? '').trim();
+			const currentOrderId = (ticket.orderId ?? '').trim();
+
+			const orderTickets = tickets
+				.filter((candidate) => {
+					if (!candidate.userPhone) return false;
+					const samePhone =
+						normalizeVenezuelaPhone(candidate.userPhone) === normalizedPhone;
+					if (!samePhone) return false;
+
+					if (currentOrderId) {
+						return (candidate.orderId ?? '').trim() === currentOrderId;
+					}
+
+					if (normalizedRef) {
+						return (
+							(candidate.paymentRef ?? '').trim().toLowerCase() === normalizedRef
+						);
+					}
+
+					return (
+						(candidate.userName ?? '').trim().toLowerCase() === normalizedName &&
+						(candidate.userNationalId ?? '').trim() === normalizedNationalId &&
+						candidate.purchasedAt === ticket.purchasedAt
+					);
+				})
+				.filter(
+					(candidate) =>
+						candidate.status === 'reserved' || candidate.status === 'sold',
+				)
+				.sort((left, right) => left.number - right.number);
+
+			const numbers =
+				orderTickets.length > 0
+					? orderTickets.map((candidate) => candidate.number)
+					: [ticket.number];
+
+			const totalAmount =
+				typeof raffle.ticketPrice === 'number'
+					? raffle.ticketPrice * numbers.length
+					: null;
+			const orderId = currentOrderId || `SIN-ORD-${ticket.id}`;
+
+			const verificationCode = buildPaymentVerificationCode(
+				raffle.id,
+				orderId,
+				ticket.paymentRef ?? '',
+				normalizedPhone,
+				numbers,
+			);
+
+			const message = buildWhatsAppConfirmationMessage({
+				customerName: ticket.userName ?? 'cliente',
+				raffleTitle: raffle.title,
+				numbers,
+				ticketPrice:
+					typeof raffle.ticketPrice === 'number' ? raffle.ticketPrice : null,
+				totalAmount,
+				orderId,
+				paymentRef: ticket.paymentRef ?? '',
+				verificationCode,
+			});
+
+			const whatsappUrl = `https://web.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(message)}`;
+			window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+		},
+		[raffle, tickets],
+	);
+
 	const saveDrawSchedule = async () => {
 		if (raffle?.isArchived) {
 			setActionNotice('No puedes programar una rifa culminada.');
@@ -454,10 +606,18 @@ const AdminRafflePage: React.FC = () => {
 		return () => window.clearTimeout(timer);
 	}, [adminUser, raffle?.drawScheduledAt, raffle?.drawStatus, runDraw]);
 
-	const filtered =
-		filterStatus === 'all'
-			? tickets
-			: tickets.filter((ticket) => ticket.status === filterStatus);
+	const normalizedOrderIdFilter = orderIdFilter.trim().toUpperCase();
+
+	const filtered = tickets.filter((ticket) => {
+		const statusMatch =
+			filterStatus === 'all' ? true : ticket.status === filterStatus;
+		if (!statusMatch) return false;
+
+		if (!normalizedOrderIdFilter) return true;
+		return (ticket.orderId ?? '')
+			.toUpperCase()
+			.includes(normalizedOrderIdFilter);
+	});
 
 	const counts: Record<TicketStatus | 'all', number> = useMemo(
 		() => ({
@@ -698,6 +858,31 @@ const AdminRafflePage: React.FC = () => {
 					))}
 				</div>
 
+				<div className='mb-6 rounded-2xl border border-slate-700 bg-slate-900/60 p-3 sm:p-4'>
+					<label
+						htmlFor='orderIdFilter'
+						className='block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-2'
+					>
+						Buscar por ID de orden
+					</label>
+					<div className='flex flex-col sm:flex-row gap-2'>
+						<input
+							id='orderIdFilter'
+							value={orderIdFilter}
+							onChange={(e) => setOrderIdFilter(e.target.value)}
+							placeholder='Ejemplo: ORD-RAFFLE-ABC123'
+							className='w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500'
+						/>
+						<button
+							onClick={() => setOrderIdFilter('')}
+							disabled={!orderIdFilter.trim()}
+							className='rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-300 hover:border-slate-500 hover:text-white disabled:opacity-50'
+						>
+							Limpiar
+						</button>
+					</div>
+				</div>
+
 				{error && <p className='text-red-300 mb-4'>{error}</p>}
 				{raffle?.isArchived && (
 					<p className='mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200'>
@@ -738,6 +923,9 @@ const AdminRafflePage: React.FC = () => {
 									<p className='text-sm text-slate-300'>
 										<strong>Referencia:</strong> {ticket.paymentRef ?? '—'}
 									</p>
+									<p className='text-sm text-slate-300'>
+										<strong>Orden:</strong> {ticket.orderId ?? '—'}
+									</p>
 									<p className='text-xs text-slate-400 mb-2'>
 										{ticket.purchasedAt
 											? new Date(ticket.purchasedAt).toLocaleDateString()
@@ -764,6 +952,15 @@ const AdminRafflePage: React.FC = () => {
 										<option value='sold'>Vendido</option>
 										<option value='notAvailable'>No disponible</option>
 									</select>
+									{(ticket.status === 'reserved' || ticket.status === 'sold') && (
+										<button
+											onClick={() => openWhatsAppConfirmation(ticket)}
+											disabled={!ticket.userPhone}
+											className='mt-2 w-full rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white disabled:opacity-60'
+										>
+											Confirmar por WhatsApp
+										</button>
+									)}
 								</div>
 							))}
 							{filtered.length === 0 && (
@@ -783,6 +980,7 @@ const AdminRafflePage: React.FC = () => {
 										<th className='px-4 py-3 text-left'>Cédula</th>
 										<th className='px-4 py-3 text-left'>Teléfono</th>
 										<th className='px-4 py-3 text-left'>Referencia</th>
+										<th className='px-4 py-3 text-left'>Orden</th>
 										<th className='px-4 py-3 text-left'>Fecha</th>
 										<th className='px-4 py-3 text-left'>Acción</th>
 									</tr>
@@ -815,40 +1013,54 @@ const AdminRafflePage: React.FC = () => {
 											<td className='px-4 py-3 text-slate-300'>
 												{ticket.paymentRef ?? '—'}
 											</td>
+											<td className='px-4 py-3 text-slate-300 text-xs'>
+												{ticket.orderId ?? '—'}
+											</td>
 											<td className='px-4 py-3 text-slate-400 text-xs'>
 												{ticket.purchasedAt
 													? new Date(ticket.purchasedAt).toLocaleDateString()
 													: '—'}
 											</td>
 											<td className='px-4 py-3'>
-												<select
-													value={ticket.status}
-													disabled={
-														updatingId === ticket.id ||
-														raffle?.isArchived === true ||
-														raffle?.drawStatus === 'drawing' ||
-														raffle?.drawStatus === 'completed'
-													}
-													onChange={(e) =>
-														updateTicketStatus(
-															ticket.id,
-															e.target.value as TicketStatus,
-														)
-													}
-													className='bg-slate-800 border border-slate-600 text-slate-200 rounded-lg px-2 py-1 text-xs disabled:opacity-70'
-												>
-													<option value='available'>Disponible</option>
-													<option value='reserved'>Reservado</option>
-													<option value='sold'>Vendido</option>
-													<option value='notAvailable'>No disponible</option>
-												</select>
+												<div className='flex flex-col gap-2'>
+													<select
+														value={ticket.status}
+														disabled={
+															updatingId === ticket.id ||
+															raffle?.isArchived === true ||
+															raffle?.drawStatus === 'drawing' ||
+															raffle?.drawStatus === 'completed'
+														}
+														onChange={(e) =>
+															updateTicketStatus(
+																ticket.id,
+																e.target.value as TicketStatus,
+															)
+														}
+														className='bg-slate-800 border border-slate-600 text-slate-200 rounded-lg px-2 py-1 text-xs disabled:opacity-70'
+													>
+														<option value='available'>Disponible</option>
+														<option value='reserved'>Reservado</option>
+														<option value='sold'>Vendido</option>
+														<option value='notAvailable'>No disponible</option>
+													</select>
+													{(ticket.status === 'reserved' || ticket.status === 'sold') && (
+														<button
+															onClick={() => openWhatsAppConfirmation(ticket)}
+															disabled={!ticket.userPhone}
+															className='rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-200 hover:border-emerald-300 hover:text-white disabled:opacity-60'
+														>
+															WhatsApp
+														</button>
+													)}
+												</div>
 											</td>
 										</tr>
 									))}
 									{filtered.length === 0 && (
 										<tr>
 											<td
-												colSpan={8}
+												colSpan={9}
 												className='px-4 py-8 text-center text-slate-500'
 											>
 												No hay tickets con ese estado.

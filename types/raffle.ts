@@ -24,6 +24,7 @@ export interface Ticket {
 	raffleId: string;
 	number: number;
 	status: TicketStatus;
+	orderId?: string | null;
 	userId?: string | null;
 	userName?: string | null;
 	userNationalId?: string | null;
