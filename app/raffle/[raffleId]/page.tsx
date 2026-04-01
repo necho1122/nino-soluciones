@@ -776,8 +776,8 @@ const RaffleDetailPage: React.FC = () => {
 			)}
 
 			{showCheckout && (
-				<div className='fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:items-center'>
-					<div className='w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6'>
+				<div className='fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-slate-950/80 p-3 backdrop-blur-sm sm:items-center'>
+					<div className='my-4 w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto'>
 						<div className='flex items-center justify-between gap-3'>
 							<div>
 								<p className='text-xs uppercase tracking-[0.3em] text-slate-500'>
@@ -832,6 +832,27 @@ const RaffleDetailPage: React.FC = () => {
 									className='w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-amber-400'
 									placeholder='Ej: 0412-0000000'
 								/>
+							</div>
+							<div className='rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100'>
+								<p className='text-xs font-black uppercase tracking-[0.25em] text-emerald-200'>
+									Datos para pago movil
+								</p>
+								<p className='mt-3'>
+									<span className='font-semibold text-emerald-200'>Banco:</span>{' '}
+									Banco de Venezuela (0102)
+								</p>
+								<p>
+									<span className='font-semibold text-emerald-200'>Cedula:</span>{' '}
+									18.227.300
+								</p>
+								<p>
+									<span className='font-semibold text-emerald-200'>Telefono:</span>{' '}
+									04145636125
+								</p>
+								<p className='mt-3 text-xs text-emerald-200/90'>
+									Realiza el pago movil y luego registra aqui la referencia para
+									reservar tus numeros.
+								</p>
 							</div>
 							<div>
 								<label className='mb-2 block text-sm font-semibold text-slate-200'>
