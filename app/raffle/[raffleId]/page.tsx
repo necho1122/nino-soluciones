@@ -842,11 +842,15 @@ const RaffleDetailPage: React.FC = () => {
 									Banco de Venezuela (0102)
 								</p>
 								<p>
-									<span className='font-semibold text-emerald-200'>Cedula:</span>{' '}
+									<span className='font-semibold text-emerald-200'>
+										Cedula:
+									</span>{' '}
 									18.227.300
 								</p>
 								<p>
-									<span className='font-semibold text-emerald-200'>Telefono:</span>{' '}
+									<span className='font-semibold text-emerald-200'>
+										Telefono:
+									</span>{' '}
 									04145636125
 								</p>
 								<p className='mt-3 text-xs text-emerald-200/90'>
