@@ -1,154 +1,48 @@
 # Nino Soluciones - Rifa Pro 100
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+**Rifa Pro 100** es una plataforma de gestión de sorteos digitales de alto rendimiento, construida sobre el ecosistema de **Next.js 15** y **Firebase**. El sistema ofrece una experiencia de usuario fluida para la adquisición de boletos y una infraestructura robusta para el control administrativo de las operaciones.
 
-## Rifa Pro 100
+---
 
-Sistema de rifas con Firebase para gestión de boletos y pagos.
+## 🚀 Características Principales
 
-## Características
+* **Interfaz de Selección Dinámica**: Sistema visual interactivo para la selección de números con actualización de estados en tiempo real.
+* **Gestión Integral de Boletos**: Control total sobre el inventario, permitiendo transiciones entre estados (*Disponible, Reservado, Vendido y No Disponible*).
+* **Sincronización en Tiempo Real**: Integración nativa con Firebase para garantizar que la disponibilidad de los números sea exacta en todo momento.
+* **Diseño Adaptive**: Interfaz optimizada mediante Tailwind CSS para una navegación intuitiva en smartphones, tablets y ordenadores.
+* **Arquitectura de Tipado Estricto**: Desarrollo basado en TypeScript para minimizar errores en tiempo de ejecución y facilitar el mantenimiento.
 
-- **Interfaz de Usuario**: Selección de números de rifa con referencia de pago
-- **Panel administrativo**: Gestión de estados de boletos (disponible, reservado, vendido, no disponible)
-- **Firebase Integration**: Base de datos en tiempo real y autenticación
-- **Responsive Design**: Funciona en móvil y desktop
-- **Estados Visuales**: Indicadores visuales para diferentes estados de boletos
+---
 
-## Estructura del Proyecto
+## 🛠️ Stack Tecnológico
 
-```text
-app/
-├── page.tsx          # Interfaz principal de usuario
-├── [ruta-admin-oculta]/
-│   └── ...           # Acceso administrativo (protegido por configuración)
-├── globals.css       # Estilos globales
-└── layout.tsx        # Layout principal
+* **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+* **Base de Datos & Auth**: [Firebase](https://firebase.google.com/) (Firestore & Authentication)
+* **Estilos**: [Tailwind CSS](https://tailwindcss.com/)
+* **Lenguaje**: [TypeScript](https://www.typescriptlang.org/)
 
-lib/
-└── firebase.ts       # Configuración de Firebase
+---
 
-types/
-└── raffle.ts         # Tipos TypeScript
-```
+## 🔐 Seguridad y Privacidad
 
-## Configuración de Firebase
+La seguridad es el pilar central de este proyecto. Se han implementado las siguientes medidas:
 
-### 1. Configurar Autenticación
+1.  **Protección de Rutas Privilegiadas**: Las áreas de gestión están protegidas mediante Middleware de Next.js y validación de sesiones activas.
+2.  **Control de Acceso (RBAC)**: Implementación de reglas de seguridad en Firestore que restringen la escritura y lectura de datos sensibles basándose en la identidad del usuario.
+3.  **Ofuscación de Módulos**: El acceso administrativo está desacoplado de la interfaz pública para prevenir accesos no autorizados.
+4.  **Validación de Transacciones**: Cada cambio de estado de boleto requiere una validación de autorización previa a nivel de servidor/nube.
 
-En Firebase Console:
+---
 
-1. Ve a **Authentication** > **Sign-in method**
-2. Habilita **Email/Password**
-3. Crea un usuario administrador
+## ⚙️ Configuración del Entorno
 
-### 2. Configurar Firestore
+Para ejecutar este proyecto localmente, asegúrate de configurar las variables de entorno necesarias en un archivo `.env.local`:
 
-1. Ve a **Firestore Database**
-2. Crea una colección llamada `tickets`
-3. El sistema creará automáticamente los documentos de boletos
-
-### 3. Configurar Dominios Autorizados
-
-Para desarrollo local, agrega estos dominios en Firebase Console:
-
-- **Authentication** > **Settings** > **Authorized domains**:
-  - `localhost`
-  - `localhost:3000`
-  - `localhost:3001`
-
-## Uso
-
-### Interfaz de Usuario (`/`)
-
-- Selecciona números disponibles
-- Completa el formulario con:
-  - Nombre completo
-  - Número de teléfono
-  - Referencia de pago
-- Confirma la compra
-
-### Panel administrativo (ruta oculta)
-
-- Inicia sesión con credenciales de Firebase Auth
-- Selecciona números para cambiar estado
-- Elige el nuevo estado (disponible, reservado, vendido, no disponible)
-- Aplica cambios masivamente
-- Revisa la tabla de tickets vendidos con datos de compradores
-
-## Estados de Boletos
-
-- **Disponible**: Verde, seleccionable por usuarios
-- **Reservado**: Azul, no seleccionable
-- **Vendido**: Rojo con línea diagonal, no seleccionable
-- **No disponible**: Azul con indicador, no seleccionable
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-## Tecnologías
-
-- **Next.js 16** - Framework React
-- **Firebase** - Base de datos y autenticación
-- **Tailwind CSS** - Estilos
-- **TypeScript** - Tipado estático
-- **ESLint** - Linting de código
-
-## Seguridad
-
-- Panel administrativo separado de la interfaz pública
-- Autenticación requerida para acceso administrativo
-- Ruta administrativa configurable y no documentada públicamente
-- Reglas Firestore con autorización por custom claim (`admin=true`)
-
-## Variables de entorno requeridas
-
-Configura estas variables en tu entorno local y producción:
-
-```bash
-# Ruta administrativa oculta
-ADMIN_HIDDEN_PATH=amin
-
-# Firebase (cliente)
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
-
-# Contacto público
-NEXT_PUBLIC_CONTACT_WHATSAPP_URL=
-NEXT_PUBLIC_CONTACT_WHATSAPP_LABEL=
-
-# Datos de pago público
-NEXT_PUBLIC_PAYMENT_BANK_NAME=
-NEXT_PUBLIC_PAYMENT_BANK_CODE=
-NEXT_PUBLIC_PAYMENT_NATIONAL_ID=
-NEXT_PUBLIC_PAYMENT_PHONE=
-
-# Notificaciones de backend (Cloud Functions)
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_ADMIN_CHAT_ID=
-```
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=tu_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=tu_proyecto_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=tu_app_id
