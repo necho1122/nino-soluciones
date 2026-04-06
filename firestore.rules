@@ -5,9 +5,10 @@ service cloud.firestore {
 
     // ─── helpers ──────────────────────────────────────────────────────────
 
-    // Admin = cualquier usuario autenticado (Firebase Auth)
+    // Admin = usuario autenticado con custom claim admin=true
     function isAdmin() {
-      return request.auth != null;
+      return request.auth != null
+          && request.auth.token.admin == true;
     }
 
     // ─── raffles ──────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ service cloud.firestore {
       allow create: if isPublicTicketSeed();
 
       // Público - actualizar: solo para registrar una compra
-      //   El ticket debe estar 'available' y pasar a 'sold' con todos los datos del comprador
+      //   El ticket debe pasar de available a reserved sin persistir PII
       allow update: if isPublicTicketPurchase();
 
       // Público nunca puede eliminar tickets
@@ -85,24 +86,24 @@ service cloud.firestore {
 
     // Ticket purchase: el visitante reserva un ticket disponible
     //   - Debe venir de 'available' → 'reserved'
-    //   - Solo puede modificar los campos de compra (no raffleId, number, etc.)
-    //   - Todos los campos de comprador son obligatorios y no vacíos
+    //   - Solo puede modificar status, orderId y purchasedAt
+    //   - Los campos PII del ticket deben permanecer null
     function isPublicTicketPurchase() {
       let before = resource.data;
       let after  = request.resource.data;
       let purchaseFields = [
-        'status', 'orderId', 'userName', 'userNationalId',
-        'userPhone', 'paymentRef', 'purchasedAt'
+        'status', 'orderId', 'purchasedAt'
       ];
       return before.status == 'available'
           && after.status  == 'reserved'
           && after.diff(before).affectedKeys().hasOnly(purchaseFields)
           && after.orderId        is string && after.orderId.size()        > 0
-          && after.userName       is string && after.userName.size()       > 0
-          && after.userNationalId is string && after.userNationalId.size() > 0
-          && after.userPhone      is string && after.userPhone.size()      > 0
-          && after.paymentRef     is string && after.paymentRef.size()     > 0
-          && after.purchasedAt    is string && after.purchasedAt.size()    > 0;
+          && after.purchasedAt    is string && after.purchasedAt.size()    > 0
+          && after.userId    == null
+          && after.userName  == null
+          && after.userNationalId == null
+          && after.userPhone == null
+          && after.paymentRef == null;
     }
 
     // ─── orders ──────────────────────────────────────────────────────────
@@ -115,8 +116,24 @@ service cloud.firestore {
       allow create: if request.resource.data.status == 'reserved'
           && request.resource.data.orderId is string
           && request.resource.data.orderId.size() > 0
+          && request.resource.data.raffleId is string
+          && request.resource.data.raffleId.size() > 0
+          && request.resource.data.raffleTitle is string
+          && request.resource.data.raffleTitle.size() > 0
+          && request.resource.data.numbers is list
+          && request.resource.data.numbers.size() > 0
+          && request.resource.data.quantity is int
+          && request.resource.data.quantity > 0
+          && request.resource.data.customerName is string
+          && request.resource.data.customerName.size() > 0
+          && request.resource.data.customerNationalId is string
+          && request.resource.data.customerNationalId.size() > 0
           && request.resource.data.customerPhone is string
-          && request.resource.data.customerPhone.size() > 0;
+          && request.resource.data.customerPhone.size() > 0
+          && request.resource.data.paymentRef is string
+          && request.resource.data.paymentRef.size() > 0
+          && request.resource.data.createdAt is string
+          && request.resource.data.createdAt.size() > 0;
     }
 
     // ─── raffleCertificates ─────────────────────────────────────────────

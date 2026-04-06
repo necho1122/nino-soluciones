@@ -1,6 +1,8 @@
 import Link from 'next/link';
 
-const WHATSAPP_URL = 'https://wa.me/584145636125';
+const WHATSAPP_URL = process.env.NEXT_PUBLIC_CONTACT_WHATSAPP_URL ?? '#';
+const WHATSAPP_LABEL =
+	process.env.NEXT_PUBLIC_CONTACT_WHATSAPP_LABEL ?? 'No configurado';
 
 const ContactPage = () => {
 	return (
@@ -33,13 +35,14 @@ const ContactPage = () => {
 							href={WHATSAPP_URL}
 							target='_blank'
 							rel='noopener noreferrer'
+							aria-disabled={WHATSAPP_URL === '#'}
 							className='group rounded-2xl border border-emerald-500/20 bg-slate-950/70 p-4 transition hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-emerald-500/10'
 						>
 							<p className='text-xs uppercase tracking-[0.25em] text-slate-500'>
 								WhatsApp
 							</p>
 							<p className='mt-3 text-lg font-bold text-white group-hover:text-emerald-300'>
-								+58 414-563-6125
+								{WHATSAPP_LABEL}
 							</p>
 							<p className='mt-2 text-sm text-slate-400'>
 								Toca aquí para abrir WhatsApp y escribirnos directamente.

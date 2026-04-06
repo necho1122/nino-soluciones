@@ -1,3 +1,5 @@
+# Nino Soluciones - Rifa Pro 100
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Rifa Pro 100
@@ -7,18 +9,18 @@ Sistema de rifas con Firebase para gestión de boletos y pagos.
 ## Características
 
 - **Interfaz de Usuario**: Selección de números de rifa con referencia de pago
-- **Panel de Administrador**: Gestión de estados de boletos (disponible, reservado, vendido, no disponible)
+- **Panel administrativo**: Gestión de estados de boletos (disponible, reservado, vendido, no disponible)
 - **Firebase Integration**: Base de datos en tiempo real y autenticación
 - **Responsive Design**: Funciona en móvil y desktop
 - **Estados Visuales**: Indicadores visuales para diferentes estados de boletos
 
 ## Estructura del Proyecto
 
-```
+```text
 app/
 ├── page.tsx          # Interfaz principal de usuario
-├── admin/
-│   └── page.tsx      # Panel de administración
+├── [ruta-admin-oculta]/
+│   └── ...           # Acceso administrativo (protegido por configuración)
 ├── globals.css       # Estilos globales
 └── layout.tsx        # Layout principal
 
@@ -58,8 +60,6 @@ Para desarrollo local, agrega estos dominios en Firebase Console:
 
 ### Interfaz de Usuario (`/`)
 
-### Interfaz de Usuario (`/`)
-
 - Selecciona números disponibles
 - Completa el formulario con:
   - Nombre completo
@@ -67,7 +67,7 @@ Para desarrollo local, agrega estos dominios en Firebase Console:
   - Referencia de pago
 - Confirma la compra
 
-### Panel de Administrador (`/admin`)
+### Panel administrativo (ruta oculta)
 
 - Inicia sesión con credenciales de Firebase Auth
 - Selecciona números para cambiar estado
@@ -110,9 +110,42 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 ## Seguridad
 
-- Panel de admin completamente separado de la interfaz de usuario
+- Panel administrativo separado de la interfaz pública
 - Autenticación requerida para acceso administrativo
-- No hay referencias a admin en la interfaz pública
+- Ruta administrativa configurable y no documentada públicamente
+- Reglas Firestore con autorización por custom claim (`admin=true`)
+
+## Variables de entorno requeridas
+
+Configura estas variables en tu entorno local y producción:
+
+```bash
+# Ruta administrativa oculta
+ADMIN_HIDDEN_PATH=amin
+
+# Firebase (cliente)
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+
+# Contacto público
+NEXT_PUBLIC_CONTACT_WHATSAPP_URL=
+NEXT_PUBLIC_CONTACT_WHATSAPP_LABEL=
+
+# Datos de pago público
+NEXT_PUBLIC_PAYMENT_BANK_NAME=
+NEXT_PUBLIC_PAYMENT_BANK_CODE=
+NEXT_PUBLIC_PAYMENT_NATIONAL_ID=
+NEXT_PUBLIC_PAYMENT_PHONE=
+
+# Notificaciones de backend (Cloud Functions)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ADMIN_CHAT_ID=
+```
 
 ## Deploy on Vercel
 

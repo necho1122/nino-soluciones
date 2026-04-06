@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
 	collection,
 	getDocs,
@@ -52,6 +53,7 @@ const formatRaffleDrawStatus = (raffle: Raffle) => {
 };
 
 const AdminPanel: React.FC = () => {
+	const pathname = usePathname();
 	const [raffles, setRaffles] = useState<Raffle[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
@@ -72,6 +74,10 @@ const AdminPanel: React.FC = () => {
 	const [actionNotice, setActionNotice] = useState<string | null>(null);
 
 	const isAdmin = !!adminUser;
+	const adminBasePath = (() => {
+		const firstSegment = pathname?.split('/').filter(Boolean)[0];
+		return firstSegment ? `/${firstSegment}` : '/admin';
+	})();
 
 	const fetchRaffles = async () => {
 		setLoading(true);
@@ -415,7 +421,7 @@ const AdminPanel: React.FC = () => {
 								</div>
 								<div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
 									<Link
-										href={`/admin/raffle/${raffle.id}`}
+										href={`${adminBasePath}/raffle/${raffle.id}`}
 										className='rounded-lg bg-indigo-500 px-3 py-2.5 text-sm font-semibold text-center text-white'
 									>
 										Administrar
@@ -477,7 +483,7 @@ const AdminPanel: React.FC = () => {
 									<div className='mt-3'>
 										<div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
 											<Link
-												href={`/admin/raffle/${raffle.id}`}
+												href={`${adminBasePath}/raffle/${raffle.id}`}
 												className='inline-flex justify-center rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600'
 											>
 												Ver historial

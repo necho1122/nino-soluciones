@@ -26,6 +26,13 @@ import { db } from '@/lib/firebase';
 import { Raffle, RaffleCertificate, Ticket } from '@/types/raffle';
 
 const TOTAL_TICKETS = 100;
+const PAYMENT_BANK_NAME =
+	process.env.NEXT_PUBLIC_PAYMENT_BANK_NAME ?? 'No configurado';
+const PAYMENT_BANK_CODE =
+	process.env.NEXT_PUBLIC_PAYMENT_BANK_CODE ?? 'No configurado';
+const PAYMENT_NATIONAL_ID =
+	process.env.NEXT_PUBLIC_PAYMENT_NATIONAL_ID ?? 'No configurado';
+const PAYMENT_PHONE = process.env.NEXT_PUBLIC_PAYMENT_PHONE ?? 'No configurado';
 
 const formatTicketNumber = (ticketNumber: number) =>
 	ticketNumber.toString().padStart(2, '0');
@@ -396,37 +403,12 @@ const RaffleDetailPage: React.FC = () => {
 					{
 						status: 'reserved',
 						orderId,
-						userName: buyerName.trim(),
-						userNationalId: buyerNationalId.trim(),
-						userPhone: buyerPhone.trim(),
-						paymentRef: paymentReference.trim(),
 						purchasedAt,
 					},
 					{ merge: true },
 				);
 			});
 			await batch.commit();
-
-			// Notificar al admin por Telegram (fire-and-forget, no bloquea al usuario)
-			fetch('/api/notify-telegram', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					orderId,
-					raffleTitle: raffle?.title ?? '',
-					customerName: buyerName.trim(),
-					customerNationalId: buyerNationalId.trim(),
-					customerPhone: buyerPhone.trim(),
-					numbers,
-					quantity: numbers.length,
-					ticketPrice,
-					totalAmount,
-					paymentRef: paymentReference.trim(),
-					createdAt: purchasedAt,
-				}),
-			}).catch((err) =>
-				console.error('[notify-telegram] No se pudo enviar notificación:', err),
-			);
 
 			setSuccessMessage(
 				'Tu pago fue registrado y tus números quedaron reservados hasta la verificación del pago.',
@@ -644,7 +626,7 @@ const RaffleDetailPage: React.FC = () => {
 										</p>
 										<p className='mt-2 text-sm text-slate-300'>
 											{raffle.drawOutcome === 'winner'
-												? `Ganador: ${raffle.drawWinnerName ?? 'Participante'}`
+												? 'Ganador verificado por el sistema.'
 												: 'No hubo ganador porque el número sorteado no había sido comprado.'}
 										</p>
 										{(raffle.drawOutcome === 'winner' ||
@@ -839,19 +821,19 @@ const RaffleDetailPage: React.FC = () => {
 								</p>
 								<p className='mt-3'>
 									<span className='font-semibold text-emerald-200'>Banco:</span>{' '}
-									Banco de Venezuela (0102)
+									{PAYMENT_BANK_NAME} ({PAYMENT_BANK_CODE})
 								</p>
 								<p>
 									<span className='font-semibold text-emerald-200'>
 										Cedula:
 									</span>{' '}
-									18.227.300
+									{PAYMENT_NATIONAL_ID}
 								</p>
 								<p>
 									<span className='font-semibold text-emerald-200'>
 										Telefono:
 									</span>{' '}
-									04145636125
+									{PAYMENT_PHONE}
 								</p>
 								<p className='mt-3 text-xs text-emerald-200/90'>
 									Realiza el pago movil y luego registra aqui la referencia para

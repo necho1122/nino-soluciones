@@ -173,14 +173,9 @@ const CertificatePage: React.FC = () => {
 										</p>
 										<p className='mt-1 text-sm text-[#475569]'>
 											{hasWinner
-												? `Ganador: ${certificate.winnerName ?? 'Participante'}`
+												? 'Ganador verificado y validado por el sistema.'
 												: 'El número sorteado no estaba vendido al momento del sorteo.'}
 										</p>
-										{hasWinner && (
-											<p className='mt-1 text-sm text-[#475569]'>
-												Telefono: {certificate.winnerPhone ?? 'No registrado'}
-											</p>
-										)}
 									</div>
 									<div className='rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4'>
 										<p className='text-xs uppercase tracking-[0.2em] text-[#64748b]'>
